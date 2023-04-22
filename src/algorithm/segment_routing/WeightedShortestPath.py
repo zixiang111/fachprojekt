@@ -68,3 +68,27 @@ class WeightedShortestPath(GenericSR):
         return
 
     def solve(self):
+        self.__get_all_shortest_paths_generator()
+
+        for idx, (s, t, d) in self.__demands.items():
+            self.__add_demand_update_objective(s, t, d)
+
+        paths = dict()
+        for i, j, _ in self.__links:
+            paths[(i, j)] = []
+
+        for idx, (s, t, d) in self.__demands.items():
+            shortest_paths = list(self.__all_shortest_paths_generators[s, t])
+            path_costs = []
+            for path in shortest_paths:
+                path_cost = 0
+                for i in range(len(path) - 1):
+                    path_cost += self.__weights[path[i], path[i+1]]
+                path_costs.append((path_cost, path))
+
+            path = sorted(path_costs, key=lambda x: x[0])[0][1]
+            for i in range(len(path) - 1):
+                link = (path[i], path[i+1])
+                paths[link].append(idx)
+
+        return paths
