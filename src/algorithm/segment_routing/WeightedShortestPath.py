@@ -1,7 +1,10 @@
 import time
+
 import networkx as nx
+
 from algorithm.generic_sr import GenericSR
 from algorithm.segment_routing.sr_utility import SRUtility
+
 
 class WeightedShortestPath(GenericSR):
     def __init__(self, nodes: list, links: list, demands: list, weights: dict, waypoints: dict = None, **kwargs):
@@ -64,23 +67,15 @@ class WeightedShortestPath(GenericSR):
             self.__add_demand_val_to_path(path, demand)
         return
 
-    def __calculate_link_utilization(self):
-        link_utilization = []
-        for i, j, c in self.__links:
-            if c == 0:
-                link_utilization.append(0)
-            else:
-                link_utilization.append(self.__flow_sum[(i, j)] / c)
-        return link_utilization
     def solve(self):
         self.__get_all_shortest_paths_generator()
 
         for idx, (s, t, d) in self.__demands.items():
             self.__add_demand_update_objective(s, t, d)
 
-        link_utilization = dict()
-        for i, j, c in self.__links:
-            link_utilization[(i, j)] = 0
+        paths = dict()
+        for i, j, _ in self.__links:
+            paths[(i, j)] = []
 
         for idx, (s, t, d) in self.__demands.items():
             shortest_paths = list(self.__all_shortest_paths_generators[s, t])
@@ -88,13 +83,12 @@ class WeightedShortestPath(GenericSR):
             for path in shortest_paths:
                 path_cost = 0
                 for i in range(len(path) - 1):
-                    link = (path[i], path[i+1])
-                    path_cost += self.__weights[link] * (1 + link_utilization[link])
+                    path_cost += self.__weights[path[i], path[i+1]]
                 path_costs.append((path_cost, path))
 
             path = sorted(path_costs, key=lambda x: x[0])[0][1]
             for i in range(len(path) - 1):
                 link = (path[i], path[i+1])
-                link_utilization[link] += d / self.__weights[link]
+                paths[link].append(idx)
 
-        return link_utilization
+        return paths
